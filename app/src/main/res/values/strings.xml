@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">WebTest</string>
+    <string name="open_web_view">Open Web View</string>
+</resources>
