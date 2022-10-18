@@ -16,6 +16,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.LinearLayout;
 import android.util.Log;
+import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -89,10 +90,13 @@ public class WebActivity extends Activity {
                     // Continue only if the File was successfully created
                     if (photoFile != null) {
                         mCameraPhotoPath = "file:" + photoFile.getAbsolutePath();
-                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                                Uri.fromFile(photoFile));
+                        Log.d(TAG, "Camera Path:"+ mCameraPhotoPath);
+                        Uri photoURI = FileProvider.getUriForFile(WebActivity.this, "com.popid.web.fileprovider", photoFile);
+                        Log.d(TAG, "photoURI: "+ photoURI);
+                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
                     } else {
                         takePictureIntent = null;
+                        Log.d(TAG, "PhotoFile null");
                     }
                 }
 
@@ -126,12 +130,12 @@ public class WebActivity extends Activity {
 
             return false;
         });
-        view.setDownloadListener((uri, userAgent, contentDisposition, mimetype, contentLength) -> handleURI(uri));
-        view.setOnLongClickListener(v -> {
-            handleURI(((WebView) v).getHitTestResult().getExtra());
-
-            return true;
-        });
+//        view.setDownloadListener((uri, userAgent, contentDisposition, mimetype, contentLength) -> handleURI(uri));
+//        view.setOnLongClickListener(v -> {
+//            handleURI(((WebView) v).getHitTestResult().getExtra());
+//
+//            return true;
+//        });
 
         view.loadUrl(home.toString());
 
@@ -146,40 +150,42 @@ public class WebActivity extends Activity {
         if (resultCode == Activity.RESULT_OK) {
             if (intent == null) {
                 // If there is not data, then we may have taken a photo
+                Log.d(TAG, "OnActivityResult: mCameraPhotoPath: "+ mCameraPhotoPath);
+                Log.d(TAG, "OnActivityResult: mCameraPhotoPath URI: "+ Uri.parse(mCameraPhotoPath));
                 if (mCameraPhotoPath != null) {
                     results = new Uri[]{Uri.parse(mCameraPhotoPath)};
                 }
             } else {
                 String dataString = intent.getDataString();
+                Log.d(TAG, "OnActivityResult: dataString "+ dataString);
+
                 if (dataString != null) {
                     results = new Uri[]{Uri.parse(dataString)};
                 }
             }
+        } else {
+            Log.d(TAG, "ACTIVITY Result NOT OK-" + resultCode);
         }
         fileChooserCallback.onReceiveValue(results);
         fileChooserCallback = null;
     }
 
-    private void handleURI(String uri) {
-        if (uri != null) {
-            Intent i = new Intent(Intent.ACTION_VIEW);
-            i.setData(Uri.parse(uri.replaceFirst("^blob:", "")));
-
-            startActivity(i);
-        }
-    }
+//    private void handleURI(String uri) {
+//        Log.d(TAG, "Handle URI: "+ uri);
+//        if (uri != null) {
+//            Intent i = new Intent(Intent.ACTION_VIEW);
+//            i.setData(Uri.parse(uri.replaceFirst("^blob:", "")));
+//            startActivity(i);
+//        }
+//    }
 
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES);
-        File imageFile = File.createTempFile(
-                imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
-                storageDir      /* directory */
-        );
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File imageFile = new File(storageDir, imageFileName + ".jpg");
+        Log.d(TAG, "ImageFile:" +imageFile.getAbsolutePath());
         return imageFile;
     }
 }
